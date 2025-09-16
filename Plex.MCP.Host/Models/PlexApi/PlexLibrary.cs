@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Plex.MCP.Host.Models;
+namespace Plex.MCP.Host.Models.PlexApi;
 
 public record PlexLibrary(
     [property: JsonPropertyName("allowSync")] bool AllowSync,
@@ -24,26 +24,4 @@ public record PlexLibrary(
     [property: JsonPropertyName("contentChangedAt")] long ContentChangedAt,
     [property: JsonPropertyName("hidden")] int Hidden,
     [property: JsonPropertyName("Location")] List<PlexLocation>? Locations = null
-);
-
-public record PlexLocation(
-    [property: JsonPropertyName("id")] int Id,
-    [property: JsonPropertyName("path")] string Path
-);
-
-public record PlexLibrariesResponse(
-    [property: JsonPropertyName("Directory")] List<PlexLibrary> Libraries
-);
-
-public record PlexMediaContainer(
-    [property: JsonPropertyName("size")] int Size,
-    [property: JsonPropertyName("allowSync")] bool AllowSync,
-    [property: JsonPropertyName("identifier")] string Identifier,
-    [property: JsonPropertyName("mediaTagPrefix")] string MediaTagPrefix,
-    [property: JsonPropertyName("mediaTagVersion")] long MediaTagVersion,
-    [property: JsonPropertyName("title1")] string Title1,
-    [property: JsonPropertyName("Directory")] List<PlexLibrary>? Directories = null,
-    [property: JsonPropertyName("Metadata")] List<PlexMediaItem>? Metadata = null,
-    [property: JsonPropertyName("Video")] List<PlexMediaItem>? Videos = null,
-    [property: JsonPropertyName("Track")] List<PlexMediaItem>? Tracks = null
 );
