@@ -1,0 +1,61 @@
+using System.Text.Json.Serialization;
+
+namespace Plex.MCP.Host.Models;
+
+public record PlexServerInfo(
+    [property: JsonPropertyName("friendlyName")] string FriendlyName,
+    [property: JsonPropertyName("machineIdentifier")] string MachineIdentifier,
+    [property: JsonPropertyName("size")] string Size,
+    [property: JsonPropertyName("version")] string Version
+);
+
+public record PlexServerCapabilities(
+    [property: JsonPropertyName("allowCameraUpload")] bool AllowCameraUpload,
+    [property: JsonPropertyName("allowChannelAccess")] bool AllowChannelAccess,
+    [property: JsonPropertyName("allowMediaDeletion")] bool AllowMediaDeletion,
+    [property: JsonPropertyName("allowSharing")] bool AllowSharing,
+    [property: JsonPropertyName("allowSync")] bool AllowSync,
+    [property: JsonPropertyName("allowTuners")] bool AllowTuners,
+    [property: JsonPropertyName("backgroundProcessing")] bool BackgroundProcessing,
+    [property: JsonPropertyName("certificate")] bool Certificate,
+    [property: JsonPropertyName("companionProxy")] bool CompanionProxy,
+    [property: JsonPropertyName("countryCode")] string CountryCode,
+    [property: JsonPropertyName("diagnostics")] string Diagnostics,
+    [property: JsonPropertyName("eventStream")] bool EventStream,
+    [property: JsonPropertyName("hubSearch")] bool HubSearch,
+    [property: JsonPropertyName("itemClusters")] bool ItemClusters,
+    [property: JsonPropertyName("livetv")] int LiveTv,
+    [property: JsonPropertyName("machineIdentifier")] string MachineIdentifier,
+    [property: JsonPropertyName("mediaProviders")] bool MediaProviders,
+    [property: JsonPropertyName("multiuser")] bool Multiuser,
+    [property: JsonPropertyName("musicAnalysis")] int MusicAnalysis,
+    [property: JsonPropertyName("myPlex")] bool MyPlex,
+    [property: JsonPropertyName("myPlexMappingState")] string MyPlexMappingState,
+    [property: JsonPropertyName("myPlexSigninState")] string MyPlexSigninState,
+    [property: JsonPropertyName("myPlexSubscription")] bool MyPlexSubscription,
+    [property: JsonPropertyName("myPlexUsername")] string MyPlexUsername,
+    [property: JsonPropertyName("offlineTranscode")] int OfflineTranscode,
+    [property: JsonPropertyName("ownerFeatures")] string OwnerFeatures,
+    [property: JsonPropertyName("photoAutoTag")] bool PhotoAutoTag,
+    [property: JsonPropertyName("platform")] string Platform,
+    [property: JsonPropertyName("platformVersion")] string PlatformVersion,
+    [property: JsonPropertyName("pluginHost")] bool PluginHost,
+    [property: JsonPropertyName("pushNotifications")] bool PushNotifications,
+    [property: JsonPropertyName("readOnlyLibraries")] bool ReadOnlyLibraries,
+    [property: JsonPropertyName("streamingBrainABRVersion")] int StreamingBrainABRVersion,
+    [property: JsonPropertyName("streamingBrainVersion")] int StreamingBrainVersion,
+    [property: JsonPropertyName("sync")] bool Sync,
+    [property: JsonPropertyName("transcoderActiveVideoSessions")] int TranscoderActiveVideoSessions,
+    [property: JsonPropertyName("transcoderAudio")] bool TranscoderAudio,
+    [property: JsonPropertyName("transcoderLyrics")] bool TranscoderLyrics,
+    [property: JsonPropertyName("transcoderPhoto")] bool TranscoderPhoto,
+    [property: JsonPropertyName("transcoderSubtitles")] bool TranscoderSubtitles,
+    [property: JsonPropertyName("transcoderVideo")] bool TranscoderVideo,
+    [property: JsonPropertyName("transcoderVideoBitrates")] string TranscoderVideoBitrates,
+    [property: JsonPropertyName("transcoderVideoQualities")] string TranscoderVideoQualities,
+    [property: JsonPropertyName("transcoderVideoResolutions")] string TranscoderVideoResolutions,
+    [property: JsonPropertyName("updatedAt")] long UpdatedAt,
+    [property: JsonPropertyName("updater")] bool Updater,
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("voiceSearch")] bool VoiceSearch
+);

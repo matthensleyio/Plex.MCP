@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:plexapi.dev)",
+      "Read(//c/Users/matt/source/repos/Spotify.MCP/**)",
+      "Bash(del \"C:\\Users\\matt\\source\\repos\\Plex.MCP\\Plex.MCP.Host\\Models\\McpModels.cs\")",
+      "Bash(dotnet build)",
+      "Bash(timeout:*)",
+      "Read(//c/Users/matt/AppData/Roaming/Claude/**)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)",
+      "Bash(env)",
+      "Bash(grep:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell Stop-Process:*)",
+      "Bash(dir:*)",
+      "Bash(del TestPlexApi.cs)",
+      "Bash(cat:*)",
+      "Bash(dotnet add package:*)",
+      "WebFetch(domain:github.com)",
+      "Read(//c/Users/matt/source/repos/Plex.MCP/**)",
+      "Read(//c/Users/matt/OneDrive/AI Tools/MCP Servers/Plex/**)",
+      "WebFetch(domain:stackoverflow.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
