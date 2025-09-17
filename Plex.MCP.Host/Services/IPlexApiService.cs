@@ -23,4 +23,5 @@ public interface IPlexApiService
     Task MarkAsUnplayedAsync(string ratingKey);
     Task UpdatePlayProgressAsync(string ratingKey, int time, string state = "stopped");
     Task<string?> GetRawJsonAsync(string endpoint);
+    Task UpdateMetadataAsync(string ratingKey, Dictionary<string, object> metadataFields);
 }

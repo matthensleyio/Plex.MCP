@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:python-plexapi.readthedocs.io)",
+      "WebSearch",
+      "WebFetch(domain:www.plexopedia.com)",
+      "Bash(dotnet build)",
+      "Bash(dotnet test)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet:*)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

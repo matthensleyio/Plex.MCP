@@ -157,6 +157,58 @@ public class PlexApiService : IPlexApiService
         }
     }
 
+    private async Task MakePutApiRequestAsync(string endpoint, string methodName, Dictionary<string, string>? queryParams = null)
+    {
+        _logger.LogInformation("Executing {MethodName}", methodName);
+        var uriBuilder = new UriBuilder($"{_baseUrl}{endpoint}");
+        var query = new List<string>();
+
+        if (!string.IsNullOrEmpty(_plexToken))
+        {
+            query.Add($"X-Plex-Token={_plexToken}");
+        }
+
+        if (queryParams != null)
+        {
+            foreach (var param in queryParams)
+            {
+                query.Add($"{param.Key}={Uri.EscapeDataString(param.Value)}");
+            }
+        }
+
+        if (query.Any())
+        {
+            uriBuilder.Query = string.Join("&", query);
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Put, uriBuilder.Uri);
+        request.Headers.Add("Accept", "application/json");
+
+        LogRequest(request);
+
+        try
+        {
+            var response = await _httpClient.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            LogResponse(response, content);
+
+            response.EnsureSuccessStatusCode();
+
+            _logger.LogInformation("{MethodName} executed successfully.", methodName);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request for {MethodName} failed.", methodName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred in {MethodName}.", methodName);
+            throw;
+        }
+    }
+
     private void LogRequest(HttpRequestMessage request)
     {
         _logger.LogInformation("Request: {Method} {Url}", request.Method, request.RequestUri);
@@ -400,5 +452,69 @@ public class PlexApiService : IPlexApiService
             _logger.LogError(ex, "Error getting raw JSON from {Endpoint}", endpoint);
             return null;
         }
+    }
+
+    public async Task UpdateMetadataAsync(string ratingKey, Dictionary<string, object> metadataFields)
+    {
+        var metadata = await GetMetadataAsync(ratingKey);
+        if (metadata == null)
+            throw new ArgumentException($"Media item with rating key '{ratingKey}' not found.");
+
+        if (metadata.LibrarySectionId == null)
+            throw new InvalidOperationException($"Unable to determine library section for media item '{ratingKey}'.");
+
+        var queryParams = new Dictionary<string, string>
+        {
+            ["type"] = GetMediaTypeNumber(metadata.Type),
+            ["id"] = ratingKey,
+            ["includeExternalMedia"] = "1"
+        };
+
+        foreach (var field in metadataFields)
+        {
+            var fieldName = field.Key;
+            var fieldValue = field.Value;
+
+            if (fieldValue is Dictionary<string, object> fieldConfig)
+            {
+                if (fieldConfig.ContainsKey("value"))
+                {
+                    queryParams[$"{fieldName}.value"] = fieldConfig["value"]?.ToString() ?? "";
+                }
+                if (fieldConfig.ContainsKey("locked") && fieldConfig["locked"] is bool locked && locked)
+                {
+                    queryParams[$"{fieldName}.locked"] = "1";
+                }
+            }
+            else
+            {
+                queryParams[$"{fieldName}.value"] = fieldValue?.ToString() ?? "";
+            }
+        }
+
+        await MakePutApiRequestAsync($"/library/sections/{metadata.LibrarySectionId}/all",
+            $"{nameof(UpdateMetadataAsync)} for rating key {ratingKey}", queryParams);
+    }
+
+    private static string GetMediaTypeNumber(string type)
+    {
+        return type.ToLower() switch
+        {
+            "movie" => "1",
+            "show" => "2",
+            "season" => "3",
+            "episode" => "4",
+            "trailer" => "5",
+            "comic" => "6",
+            "person" => "7",
+            "artist" => "8",
+            "album" => "9",
+            "track" => "10",
+            "photoalbum" => "11",
+            "photo" => "12",
+            "clip" => "13",
+            "playlistitem" => "15",
+            _ => "1"
+        };
     }
 }

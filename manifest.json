@@ -1,0 +1,103 @@
+{
+  "manifest_version": "1.0",
+  "name": "plex-mcp",
+  "version": "1.0.0",
+  "display_name": "Plex Media Server MCP",
+  "description": "Model Context Protocol server for interacting with Plex Media Server - search, browse, and manage your media library",
+  "author": {
+    "name": "Matt",
+    "email": ""
+  },
+  "server": {
+    "type": "binary",
+    "command": {
+      "windows": "./server/Plex.MCP.Host.exe",
+      "darwin": "./server/Plex.MCP.Host",
+      "linux": "./server/Plex.MCP.Host"
+    }
+  },
+  "tools": [
+    {
+      "name": "get_libraries",
+      "description": "Get all Plex libraries"
+    },
+    {
+      "name": "get_library_items",
+      "description": "Get items from a specific library"
+    },
+    {
+      "name": "get_recently_added",
+      "description": "Get recently added media items"
+    },
+    {
+      "name": "search_media",
+      "description": "Search across all Plex libraries"
+    },
+    {
+      "name": "search_library",
+      "description": "Search within a specific library"
+    },
+    {
+      "name": "get_metadata",
+      "description": "Get detailed metadata for a media item"
+    },
+    {
+      "name": "update_media_metadata",
+      "description": "Update metadata for movies, shows, episodes, audiobooks, etc."
+    },
+    {
+      "name": "mark_as_played",
+      "description": "Mark a media item as played"
+    },
+    {
+      "name": "mark_as_unplayed",
+      "description": "Mark a media item as unplayed"
+    },
+    {
+      "name": "update_play_progress",
+      "description": "Update playback progress for a media item"
+    },
+    {
+      "name": "get_playlists",
+      "description": "Get all Plex playlists"
+    },
+    {
+      "name": "get_playlist_items",
+      "description": "Get items from a specific playlist"
+    },
+    {
+      "name": "get_server_capabilities",
+      "description": "Get Plex server information and capabilities"
+    },
+    {
+      "name": "get_sessions",
+      "description": "Get currently active Plex sessions"
+    },
+    {
+      "name": "refresh_library",
+      "description": "Refresh a Plex library to scan for new content"
+    }
+  ],
+  "user_config": [
+    {
+      "key": "plex_server_url",
+      "type": "string",
+      "title": "Plex Server URL",
+      "description": "URL of your Plex Media Server (e.g., http://localhost:32400)",
+      "default": "http://localhost:32400",
+      "required": true
+    },
+    {
+      "key": "plex_token",
+      "type": "string",
+      "title": "Plex Authentication Token",
+      "description": "Your Plex authentication token (found in Plex settings)",
+      "required": true,
+      "sensitive": true
+    }
+  ],
+  "compatibility": {
+    "platforms": ["windows", "darwin", "linux"],
+    "architecture": ["x64", "arm64"]
+  }
+}

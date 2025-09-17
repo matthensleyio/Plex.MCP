@@ -101,4 +101,91 @@ public class MediaTools
             return $"Error updating play progress: {ex.Message}";
         }
     }
+
+    [McpServerTool, Description("Update metadata for a media item (movie, show, episode, audiobook, etc.)")]
+    public async Task<string> UpdateMediaMetadataAsync(
+        [Description("Rating key of the media item")] string ratingKey,
+        [Description("Title of the media item")] string? title = null,
+        [Description("Summary/description of the media item")] string? summary = null,
+        [Description("User rating (0.0 to 10.0)")] float? rating = null,
+        [Description("Content rating (G, PG, PG-13, R, etc.)")] string? contentRating = null,
+        [Description("Studio/publisher name")] string? studio = null,
+        [Description("Release year")] int? year = null,
+        [Description("Lock title field to prevent overwriting")] bool lockTitle = false,
+        [Description("Lock summary field to prevent overwriting")] bool lockSummary = false,
+        [Description("Lock rating field to prevent overwriting")] bool lockRating = false,
+        [Description("Lock content rating field to prevent overwriting")] bool lockContentRating = false,
+        [Description("Lock studio field to prevent overwriting")] bool lockStudio = false,
+        [Description("Lock year field to prevent overwriting")] bool lockYear = false)
+    {
+        try
+        {
+            if (title == null && summary == null && rating == null && contentRating == null && studio == null && year == null)
+                return "No metadata fields provided to update. Please specify at least one field.";
+
+            if (rating.HasValue && (rating.Value < 0 || rating.Value > 10))
+                return "Rating must be between 0.0 and 10.0";
+
+            var metadataFields = new Dictionary<string, object>();
+
+            if (title != null)
+            {
+                metadataFields["title"] = lockTitle
+                    ? new Dictionary<string, object> { ["value"] = title, ["locked"] = true }
+                    : title;
+            }
+
+            if (summary != null)
+            {
+                metadataFields["summary"] = lockSummary
+                    ? new Dictionary<string, object> { ["value"] = summary, ["locked"] = true }
+                    : summary;
+            }
+
+            if (rating.HasValue)
+            {
+                metadataFields["userRating"] = lockRating
+                    ? new Dictionary<string, object> { ["value"] = rating.Value.ToString("F1"), ["locked"] = true }
+                    : rating.Value.ToString("F1");
+            }
+
+            if (contentRating != null)
+            {
+                metadataFields["contentRating"] = lockContentRating
+                    ? new Dictionary<string, object> { ["value"] = contentRating, ["locked"] = true }
+                    : contentRating;
+            }
+
+            if (studio != null)
+            {
+                metadataFields["studio"] = lockStudio
+                    ? new Dictionary<string, object> { ["value"] = studio, ["locked"] = true }
+                    : studio;
+            }
+
+            if (year.HasValue)
+            {
+                metadataFields["year"] = lockYear
+                    ? new Dictionary<string, object> { ["value"] = year.Value.ToString(), ["locked"] = true }
+                    : year.Value.ToString();
+            }
+
+            await _plexApi.UpdateMetadataAsync(ratingKey, metadataFields);
+
+            var updatedFields = new List<string>();
+            if (title != null) updatedFields.Add($"title: '{title}'");
+            if (summary != null) updatedFields.Add($"summary: '{summary[..Math.Min(50, summary.Length)]}{(summary.Length > 50 ? "..." : "")}'");
+            if (rating.HasValue) updatedFields.Add($"rating: {rating.Value:F1}");
+            if (contentRating != null) updatedFields.Add($"content rating: '{contentRating}'");
+            if (studio != null) updatedFields.Add($"studio: '{studio}'");
+            if (year.HasValue) updatedFields.Add($"year: {year.Value}");
+
+            return $"Metadata updated successfully for media item '{ratingKey}'. Updated fields: {string.Join(", ", updatedFields)}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating metadata for {RatingKey}", ratingKey);
+            return $"Error updating metadata: {ex.Message}";
+        }
+    }
 }
