@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Plex.MCP.Host.Services;
 using Plex.MCP.Host.Tools;
+using Plex.MCP.Host.Mcp;
 
 namespace Plex.MCP.Host.Tests;
 
@@ -9,13 +10,17 @@ public class MediaToolsUnitTests
 {
     private readonly Mock<IPlexApiService> _mockPlexApiService;
     private readonly Mock<ILogger<MediaTools>> _mockLogger;
+    private readonly McpDispatcher _dispatcher;
     private readonly MediaTools _mediaTools;
 
     public MediaToolsUnitTests()
     {
         _mockPlexApiService = new Mock<IPlexApiService>();
         _mockLogger = new Mock<ILogger<MediaTools>>();
-        _mediaTools = new MediaTools(_mockPlexApiService.Object, _mockLogger.Object);
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var dispatcherLogger = loggerFactory.CreateLogger<McpDispatcher>();
+        _dispatcher = new McpDispatcher(dispatcherLogger);
+        _mediaTools = new MediaTools(_mockPlexApiService.Object, _mockLogger.Object, _dispatcher);
     }
 
     [Fact]
@@ -25,10 +30,12 @@ public class MediaToolsUnitTests
         var ratingKey = "12345";
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey);
 
         // Assert
-        Assert.Contains("No metadata fields provided to update", result);
+        Assert.NotNull(response);
+        Assert.NotNull(response.Error);
+        Assert.Contains("No metadata fields provided to update", response.Error.Message);
         _mockPlexApiService.Verify(x => x.UpdateMetadataAsync(It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Never);
     }
 
@@ -42,10 +49,12 @@ public class MediaToolsUnitTests
         var ratingKey = "12345";
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, rating: invalidRating);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, rating: invalidRating);
 
         // Assert
-        Assert.Contains("Rating must be between 0.0 and 10.0", result);
+        Assert.NotNull(response);
+        Assert.NotNull(response.Error);
+        Assert.Contains("Rating must be between 0.0 and 10.0", response.Error.Message);
         _mockPlexApiService.Verify(x => x.UpdateMetadataAsync(It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()), Times.Never);
     }
 
@@ -61,11 +70,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, rating: validRating);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, rating: validRating);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"rating: {validRating:F1}", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"rating: {validRating:F1}", response.Result);
         _mockPlexApiService.Verify(x => x.UpdateMetadataAsync(ratingKey, It.IsAny<Dictionary<string, object>>()), Times.Once);
     }
 
@@ -82,11 +94,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"title: '{title}'", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"title: '{title}'", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("title"));
         Assert.Equal(title, capturedMetadata["title"]);
@@ -106,10 +121,13 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title, lockTitle: true);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title, lockTitle: true);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("title"));
 
@@ -132,11 +150,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, summary: summary);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, summary: summary);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"summary: '{summary[..Math.Min(50, summary.Length)]}'", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"summary: '{summary[..Math.Min(50, summary.Length)]}'", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("summary"));
         Assert.Equal(summary, capturedMetadata["summary"]);
@@ -154,11 +175,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, summary: longSummary);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, summary: longSummary);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"summary: '{expectedTruncated}'", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"summary: '{expectedTruncated}'", response.Result);
     }
 
     [Fact]
@@ -174,11 +198,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, contentRating: contentRating);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, contentRating: contentRating);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"content rating: '{contentRating}'", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"content rating: '{contentRating}'", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("contentRating"));
         Assert.Equal(contentRating, capturedMetadata["contentRating"]);
@@ -197,11 +224,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, studio: studio);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, studio: studio);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"studio: '{studio}'", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"studio: '{studio}'", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("studio"));
         Assert.Equal(studio, capturedMetadata["studio"]);
@@ -220,11 +250,14 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, year: year);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, year: year);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"year: {year}", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"year: {year}", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.True(capturedMetadata.ContainsKey("year"));
         Assert.Equal(year.ToString(), capturedMetadata["year"]);
@@ -248,7 +281,7 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(
+        var response = await _mediaTools.UpdateMediaMetadataAsync(
             ratingKey,
             title: title,
             summary: summary,
@@ -258,13 +291,16 @@ public class MediaToolsUnitTests
             year: year);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
-        Assert.Contains($"title: '{title}'", result);
-        Assert.Contains($"summary: '{summary}'", result);
-        Assert.Contains($"rating: {rating:F1}", result);
-        Assert.Contains($"content rating: '{contentRating}'", result);
-        Assert.Contains($"studio: '{studio}'", result);
-        Assert.Contains($"year: {year}", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
+        Assert.Contains($"title: '{title}'", response.Result);
+        Assert.Contains($"summary: '{summary}'", response.Result);
+        Assert.Contains($"rating: {rating:F1}", response.Result);
+        Assert.Contains($"content rating: '{contentRating}'", response.Result);
+        Assert.Contains($"studio: '{studio}'", response.Result);
+        Assert.Contains($"year: {year}", response.Result);
 
         Assert.NotNull(capturedMetadata);
         Assert.Equal(6, capturedMetadata.Count);
@@ -290,7 +326,7 @@ public class MediaToolsUnitTests
                           .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(
+        var response = await _mediaTools.UpdateMediaMetadataAsync(
             ratingKey,
             title: title,
             summary: summary,
@@ -298,7 +334,10 @@ public class MediaToolsUnitTests
             lockSummary: false);
 
         // Assert
-        Assert.Contains("Metadata updated successfully", result);
+        Assert.NotNull(response);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Result);
+        Assert.Contains("Metadata updated successfully", response.Result);
         Assert.NotNull(capturedMetadata);
         Assert.Equal(2, capturedMetadata.Count);
 
@@ -324,35 +363,12 @@ public class MediaToolsUnitTests
                           .ThrowsAsync(new Exception(expectedError));
 
         // Act
-        var result = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title);
+        var response = await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title);
 
         // Assert
-        Assert.Contains("Error updating metadata", result);
-        Assert.Contains(expectedError, result);
+        Assert.NotNull(response);
+        Assert.NotNull(response.Error);
+        Assert.Contains("Test error message", response.Error.Message);
     }
 
-    [Fact]
-    public async Task UpdateMediaMetadataAsync_WhenServiceThrows_ShouldLogError()
-    {
-        // Arrange
-        var ratingKey = "12345";
-        var title = "New Title";
-        var expectedException = new Exception("Test error");
-
-        _mockPlexApiService.Setup(x => x.UpdateMetadataAsync(It.IsAny<string>(), It.IsAny<Dictionary<string, object>>()))
-                          .ThrowsAsync(expectedException);
-
-        // Act
-        await _mediaTools.UpdateMediaMetadataAsync(ratingKey, title: title);
-
-        // Assert
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error updating metadata")),
-                expectedException,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
 }

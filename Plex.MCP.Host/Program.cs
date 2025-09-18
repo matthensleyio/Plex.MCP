@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
 using Plex.MCP.Host.Services;
+using Plex.MCP.Host.Mcp;
 using System.ComponentModel;
 using System.Reflection;
 using System.IO;
@@ -55,6 +56,7 @@ namespace Plex.MCP.Host
             builder.Services
                 .AddHttpClient()
                 .AddScoped<IPlexApiService, PlexApiService>()
+                .AddScoped<McpDispatcher>()
                 .AddMcpServer()
                 .WithStdioServerTransport()
                 .WithToolsFromAssembly();

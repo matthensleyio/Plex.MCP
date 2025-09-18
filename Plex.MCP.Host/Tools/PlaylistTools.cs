@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Plex.MCP.Host.Models;
+using Plex.MCP.Host.Models.Output;
+using Plex.MCP.Host.Models.PlexApi;
 using Plex.MCP.Host.Services;
+using Plex.MCP.Host.Mcp;
 using System.ComponentModel;
 using System.Text.Json;
 
@@ -12,47 +15,42 @@ public class PlaylistTools
 {
     private readonly IPlexApiService _plexApi;
     private readonly ILogger<PlaylistTools> _logger;
+    private readonly McpDispatcher _dispatcher;
 
-    public PlaylistTools(IPlexApiService plexApi, ILogger<PlaylistTools> logger)
+    public PlaylistTools(IPlexApiService plexApi, ILogger<PlaylistTools> logger, McpDispatcher dispatcher)
     {
         _plexApi = plexApi;
         _logger = logger;
+        _dispatcher = dispatcher;
     }
 
     [McpServerTool, Description("Get all playlists from Plex server")]
-    public async Task<string> GetPlaylistsAsync()
+    public Task<McpResponse<PlexPlaylistResponse>> GetPlaylistsAsync()
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
             var playlists = await _plexApi.GetPlaylistsAsync();
             if (playlists == null)
-                return "No playlists found.";
+                throw new InvalidOperationException("No playlists found.");
 
-            return JsonSerializer.Serialize(playlists, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting playlists");
-            return $"Error retrieving playlists: {ex.Message}";
-        }
+            return playlists;
+        });
     }
 
     [McpServerTool, Description("Get details and items from a specific playlist")]
-    public async Task<string> GetPlaylistAsync(
+    public Task<McpResponse<PlexPlaylistResponse>> GetPlaylistAsync(
         [Description("Playlist ID")] string playlistId)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(playlistId))
+                throw new ArgumentException("Playlist ID is required.", nameof(playlistId));
+
             var playlist = await _plexApi.GetPlaylistAsync(playlistId);
             if (playlist == null)
-                return $"Playlist '{playlistId}' not found.";
+                throw new InvalidOperationException($"Playlist '{playlistId}' not found.");
 
-            return JsonSerializer.Serialize(playlist, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting playlist {PlaylistId}", playlistId);
-            return $"Error retrieving playlist: {ex.Message}";
-        }
+            return playlist;
+        });
     }
 }

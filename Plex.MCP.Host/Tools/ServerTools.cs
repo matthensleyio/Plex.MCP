@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Plex.MCP.Host.Models;
+using Plex.MCP.Host.Models.Output;
+using Plex.MCP.Host.Models.PlexApi;
 using Plex.MCP.Host.Services;
+using Plex.MCP.Host.Mcp;
 using System.ComponentModel;
 using System.Text.Json;
 
@@ -12,65 +15,55 @@ public class ServerTools
 {
     private readonly IPlexApiService _plexApi;
     private readonly ILogger<ServerTools> _logger;
+    private readonly McpDispatcher _dispatcher;
 
-    public ServerTools(IPlexApiService plexApi, ILogger<ServerTools> logger)
+    public ServerTools(IPlexApiService plexApi, ILogger<ServerTools> logger, McpDispatcher dispatcher)
     {
         _plexApi = plexApi;
         _logger = logger;
+        _dispatcher = dispatcher;
     }
 
     [McpServerTool, Description("Get Plex server capabilities and information")]
-    public async Task<string> GetServerCapabilitiesAsync()
+    public Task<McpResponse<PlexServerCapabilities>> GetServerCapabilitiesAsync()
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
             var capabilities = await _plexApi.GetServerCapabilitiesAsync();
             if (capabilities == null)
-                return "Unable to retrieve server capabilities.";
+                throw new InvalidOperationException("Unable to retrieve server capabilities.");
 
-            return JsonSerializer.Serialize(capabilities, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting server capabilities");
-            return $"Error retrieving server capabilities: {ex.Message}";
-        }
+            return capabilities;
+        });
     }
 
     [McpServerTool, Description("Get current Plex server sessions")]
-    public async Task<string> GetSessionsAsync()
+    public Task<McpResponse<PlexSessionsResponse>> GetSessionsAsync()
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
             var sessions = await _plexApi.GetSessionsAsync();
             if (sessions == null)
-                return "No active sessions found.";
+                throw new InvalidOperationException("No active sessions found.");
 
-            return JsonSerializer.Serialize(sessions, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting sessions");
-            return $"Error retrieving sessions: {ex.Message}";
-        }
+            return sessions;
+        });
     }
 
     [McpServerTool, Description("Get hash value for a local file URL")]
-    public async Task<string> GetHashValueAsync(
+    public Task<McpResponse<string>> GetHashValueAsync(
         [Description("Local file URL to get hash for")] string url)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(url))
+                throw new ArgumentException("URL is required.", nameof(url));
+
             var hash = await _plexApi.GetHashValueAsync(url);
             if (string.IsNullOrEmpty(hash))
-                return $"Unable to get hash for URL: {url}";
+                throw new InvalidOperationException($"Unable to get hash for URL: {url}");
 
             return hash;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting hash value for {Url}", url);
-            return $"Error retrieving hash value: {ex.Message}";
-        }
+        });
     }
 }

@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using Plex.MCP.Host.Models;
+using Plex.MCP.Host.Models.Output;
+using Plex.MCP.Host.Models.PlexApi;
 using Plex.MCP.Host.Services;
+using Plex.MCP.Host.Mcp;
 using System.ComponentModel;
 using System.Text.Json;
 
@@ -12,98 +15,84 @@ public class MediaTools
 {
     private readonly IPlexApiService _plexApi;
     private readonly ILogger<MediaTools> _logger;
+    private readonly McpDispatcher _dispatcher;
 
-    public MediaTools(IPlexApiService plexApi, ILogger<MediaTools> logger)
+    public MediaTools(IPlexApiService plexApi, ILogger<MediaTools> logger, McpDispatcher dispatcher)
     {
         _plexApi = plexApi;
         _logger = logger;
+        _dispatcher = dispatcher;
     }
 
     [McpServerTool, Description("Get metadata for a specific media item")]
-    public async Task<string> GetMetadataAsync(
+    public Task<McpResponse<PlexMediaItem>> GetMetadataAsync(
         [Description("Rating key of the media item")] string ratingKey)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(ratingKey))
+                throw new ArgumentException("Rating key is required.", nameof(ratingKey));
+
             var metadata = await _plexApi.GetMetadataAsync(ratingKey);
             if (metadata == null)
-                return $"Media item with rating key '{ratingKey}' not found.";
+                throw new InvalidOperationException($"Media item with rating key '{ratingKey}' not found.");
 
-            return JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting metadata for {RatingKey}", ratingKey);
-
-            // Try to get raw JSON from the API service
-            try
-            {
-                var rawJson = await _plexApi.GetRawJsonAsync($"/library/metadata/{ratingKey}");
-                return $"Error retrieving metadata: {ex.Message}\n\nRaw Plex JSON:\n{rawJson}";
-            }
-            catch
-            {
-                return $"Error retrieving metadata: {ex.Message}";
-            }
-        }
+            return metadata;
+        });
     }
 
     [McpServerTool, Description("Mark a media item as played")]
-    public async Task<string> MarkAsPlayedAsync(
+    public Task<McpResponse<string>> MarkAsPlayedAsync(
         [Description("Rating key of the media item")] string ratingKey)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(ratingKey))
+                throw new ArgumentException("Rating key is required.", nameof(ratingKey));
+
             await _plexApi.MarkAsPlayedAsync(ratingKey);
             return $"Media item '{ratingKey}' marked as played successfully.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking {RatingKey} as played", ratingKey);
-            return $"Error marking as played: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool, Description("Mark a media item as unplayed")]
-    public async Task<string> MarkAsUnplayedAsync(
+    public Task<McpResponse<string>> MarkAsUnplayedAsync(
         [Description("Rating key of the media item")] string ratingKey)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(ratingKey))
+                throw new ArgumentException("Rating key is required.", nameof(ratingKey));
+
             await _plexApi.MarkAsUnplayedAsync(ratingKey);
             return $"Media item '{ratingKey}' marked as unplayed successfully.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking {RatingKey} as unplayed", ratingKey);
-            return $"Error marking as unplayed: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool, Description("Update play progress for a media item")]
-    public async Task<string> UpdatePlayProgressAsync(
+    public Task<McpResponse<string>> UpdatePlayProgressAsync(
         [Description("Rating key of the media item")] string ratingKey,
         [Description("Current playback time in milliseconds")] int time,
         [Description("Playback state (playing, paused, stopped)")] string state = "stopped")
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(ratingKey))
+                throw new ArgumentException("Rating key is required.", nameof(ratingKey));
+            if (string.IsNullOrWhiteSpace(state))
+                throw new ArgumentException("State is required.", nameof(state));
+
             var validStates = new[] { "playing", "paused", "stopped" };
             if (!validStates.Contains(state.ToLower()))
-                return $"Invalid state '{state}'. Valid states are: {string.Join(", ", validStates)}";
+                throw new ArgumentException($"Invalid state '{state}'. Valid states are: {string.Join(", ", validStates)}", nameof(state));
 
             await _plexApi.UpdatePlayProgressAsync(ratingKey, time, state);
             return $"Play progress updated for media item '{ratingKey}' - Time: {time}ms, State: {state}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating play progress for {RatingKey}", ratingKey);
-            return $"Error updating play progress: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool, Description("Update metadata for a media item (movie, show, episode, audiobook, etc.)")]
-    public async Task<string> UpdateMediaMetadataAsync(
+    public Task<McpResponse<string>> UpdateMediaMetadataAsync(
         [Description("Rating key of the media item")] string ratingKey,
         [Description("Title of the media item")] string? title = null,
         [Description("Summary/description of the media item")] string? summary = null,
@@ -118,13 +107,16 @@ public class MediaTools
         [Description("Lock studio field to prevent overwriting")] bool lockStudio = false,
         [Description("Lock year field to prevent overwriting")] bool lockYear = false)
     {
-        try
+        return _dispatcher.DispatchAsync(async () =>
         {
+            if (string.IsNullOrWhiteSpace(ratingKey))
+                throw new ArgumentException("Rating key is required.", nameof(ratingKey));
+
             if (title == null && summary == null && rating == null && contentRating == null && studio == null && year == null)
-                return "No metadata fields provided to update. Please specify at least one field.";
+                throw new ArgumentException("No metadata fields provided to update. Please specify at least one field.");
 
             if (rating.HasValue && (rating.Value < 0 || rating.Value > 10))
-                return "Rating must be between 0.0 and 10.0";
+                throw new ArgumentException("Rating must be between 0.0 and 10.0", nameof(rating));
 
             var metadataFields = new Dictionary<string, object>();
 
@@ -181,11 +173,6 @@ public class MediaTools
             if (year.HasValue) updatedFields.Add($"year: {year.Value}");
 
             return $"Metadata updated successfully for media item '{ratingKey}'. Updated fields: {string.Join(", ", updatedFields)}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating metadata for {RatingKey}", ratingKey);
-            return $"Error updating metadata: {ex.Message}";
-        }
+        });
     }
 }
